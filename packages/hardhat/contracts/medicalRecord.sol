@@ -8,12 +8,15 @@ contract MedicalRecord is PatientRegistry, AccessControlManager {
     struct Record {
         uint256 timestamp;
         address uploadedBy;
+        string ipfsHash;
     }
 
     mapping(address => Record[]) private patientRecords;
     PatientRegistry private registry;
+    uint256 public addRecordFee = 0.003 ether;
 
     event RecordAdded(address indexed patient, address indexed uploader, string ipfsHash, uint256 timestamp);
+    event AddRecordFeeUpdated(uint256 newFee);
 
     constructor(address _registry) AccessControlManager(_registry) {
         registry = PatientRegistry(_registry);
@@ -30,17 +33,27 @@ contract MedicalRecord is PatientRegistry, AccessControlManager {
         return ipfsHash;
     }
 
-    function addRecord(address _patient) external onlyRegisteredPatient(_patient) {
-        Record memory newRecord = Record(block.timestamp, msg.sender);
+    function addRecord(address _patient, string memory _ipfsHash) external payable onlyRegisteredPatient(_patient) {
+        require(msg.value >= addRecordFee, "Insufficient fee for adding record");
+
+        Record memory newRecord = Record(block.timestamp, msg.sender, _ipfsHash);
         patientRecords[_patient].push(newRecord);
 
-        // Get the patient's IPFS hash from PatientRegistry
-        (, string memory ipfsHash, , , ) = registry.patients(_patient);
-        emit RecordAdded(_patient, msg.sender, ipfsHash, block.timestamp);
+        emit RecordAdded(_patient, msg.sender, _ipfsHash, block.timestamp);
     }
 
-    function getRecords(address _patient, address _doctor) external view returns (Record[] memory) {
-        require(hasAccess(_patient, _doctor), "Doctor does not have access");
+    function getRecords(address _patient) external view returns (Record[] memory) {
+        require(registry.isRegistered(_patient), "Patient not registered");
+        require(msg.sender == _patient || hasAccess(_patient, msg.sender), "No access to records");
         return patientRecords[_patient];
+    }
+
+    function setAddRecordFee(uint256 _newFee) external onlyOwner {
+        addRecordFee = _newFee;
+        emit AddRecordFeeUpdated(_newFee);
+    }
+
+    function withdraw() external onlyOwner {
+        payable(owner).transfer(address(this).balance);
     }
 }
