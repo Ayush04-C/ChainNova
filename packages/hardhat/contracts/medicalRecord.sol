@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "./patientRecord.sol";
+import "./AccessControlManager.sol";
 
-contract MedicalRecord is PatientRegistry {
+contract MedicalRecord is PatientRegistry, AccessControlManager {
     struct Record {
-        string ipfsHash;   // encrypted file hash stored on IPFS
         uint256 timestamp;
         address uploadedBy;
     }
@@ -15,7 +15,7 @@ contract MedicalRecord is PatientRegistry {
 
     event RecordAdded(address indexed patient, address indexed uploader, string ipfsHash, uint256 timestamp);
 
-    constructor(address _registry) {
+    constructor(address _registry) AccessControlManager(_registry) {
         registry = PatientRegistry(_registry);
     }
 
@@ -24,16 +24,23 @@ contract MedicalRecord is PatientRegistry {
         _;
     }
 
-    function addRecord(address _patient, string memory _ipfsHash)
-        external
-        onlyRegisteredPatient(_patient)
-    {
-        Record memory newRecord = Record(_ipfsHash, block.timestamp, msg.sender);
-        patientRecords[_patient].push(newRecord);
-        emit RecordAdded(_patient, msg.sender, _ipfsHash, block.timestamp);
+    function getPatientIpfsHash(address _patient) external view returns (string memory) {
+        require(registry.isRegistered(_patient), "Patient not registered");
+        (, string memory ipfsHash, , , ) = registry.patients(_patient);
+        return ipfsHash;
     }
 
-    function getRecords(address _patient) external view returns (Record[] memory) {
+    function addRecord(address _patient) external onlyRegisteredPatient(_patient) {
+        Record memory newRecord = Record(block.timestamp, msg.sender);
+        patientRecords[_patient].push(newRecord);
+
+        // Get the patient's IPFS hash from PatientRegistry
+        (, string memory ipfsHash, , , ) = registry.patients(_patient);
+        emit RecordAdded(_patient, msg.sender, ipfsHash, block.timestamp);
+    }
+
+    function getRecords(address _patient, address _doctor) external view returns (Record[] memory) {
+        require(hasAccess(_patient, _doctor), "Doctor does not have access");
         return patientRecords[_patient];
     }
 }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./PatientRegistry.sol";
+import "./patientRecord.sol";
 
-contract AccessControlManager {
+contract AccessControlManager is PatientRegistry {
     struct AccessRequest {
         address doctor;
         address patient;
@@ -11,8 +11,8 @@ contract AccessControlManager {
         uint256 timestamp;
     }
 
-    mapping(address => mapping(address => bool)) public accessGranted; // patient => doctor => bool
-    mapping(address => AccessRequest[]) public accessHistory;
+    mapping(address => mapping(address => bool)) internal accessGranted; // patient => doctor => bool
+    mapping(address => AccessRequest[]) internal accessHistory;
 
     event AccessRequested(address indexed doctor, address indexed patient);
     event AccessGranted(address indexed doctor, address indexed patient);
@@ -24,28 +24,23 @@ contract AccessControlManager {
         registry = PatientRegistry(_registry);
     }
 
-    modifier onlyPatient(address _patient) {
-        require(msg.sender == _patient, "Not authorized");
-        _;
-    }
-
     function requestAccess(address _patient) external {
         require(registry.isRegistered(_patient), "Patient not registered");
         accessHistory[_patient].push(AccessRequest(msg.sender, _patient, false, block.timestamp));
         emit AccessRequested(msg.sender, _patient);
     }
 
-    function grantAccess(address _doctor) external onlyPatient(msg.sender) {
+    function grantAccess(address _doctor) external onlyPatient {
         accessGranted[msg.sender][_doctor] = true;
         emit AccessGranted(_doctor, msg.sender);
     }
 
-    function revokeAccess(address _doctor) external onlyPatient(msg.sender) {
+    function revokeAccess(address _doctor) external onlyPatient {
         accessGranted[msg.sender][_doctor] = false;
         emit AccessRevoked(_doctor, msg.sender);
     }
 
-    function hasAccess(address _patient, address _doctor) external view returns (bool) {
+    function hasAccess(address _patient, address _doctor) public view returns (bool) {
         return accessGranted[_patient][_doctor];
     }
 }
