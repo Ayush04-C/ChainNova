@@ -12,17 +12,19 @@ const MedicalRecordsPage: NextPage = () => {
   const { data: isRegistered } = useScaffoldReadContract({
     contractName: "PatientRegistry",
     functionName: "isRegistered",
-    args: [connectedAddress] as const,
+    args: [connectedAddress as `0x${string}` | undefined],
   });
 
-  // Read patient data
+  // Read patient data from PatientRegistry
   const { data: patientData } = useScaffoldReadContract({
     contractName: "PatientRegistry",
     functionName: "patients",
-    args: [connectedAddress] as const,
+    args: [connectedAddress as `0x${string}` | undefined],
   });
 
-  const currentIpfsHash = patientData ? String(patientData[1]) : "";
+  const patientName = patientData ? String(patientData[0]) : "";
+  const patientIpfsHash = patientData ? String(patientData[1]) : "";
+  const patientId = patientData ? String(patientData[4]) : "";
 
   return (
     <div className="flex items-center flex-col grow pt-10">
@@ -43,35 +45,41 @@ const MedicalRecordsPage: NextPage = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Current Medical Record */}
+            {/* Patient Medical Record */}
             <div className="bg-base-100 rounded-3xl shadow-lg p-8">
               <h2 className="text-2xl font-bold mb-4">Your Medical Record</h2>
 
-              {currentIpfsHash ? (
-                <div className="space-y-4">
-                  <div className="bg-base-200 rounded-lg p-4 border border-base-300">
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-semibold">Patient Name: </span>
-                        {patientData ? String(patientData[0]) : "Loading..."}
-                      </div>
+              <div className="bg-base-200 rounded-lg p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold opacity-70">Patient Name</label>
+                    <p className="text-lg font-medium">{patientName || "Loading..."}</p>
+                  </div>
 
-                      <div>
-                        <span className="font-semibold">Patient ID: </span>
-                        {patientData ? String(patientData[4]) : "Loading..."}
-                      </div>
+                  <div>
+                    <label className="text-sm font-semibold opacity-70">Patient ID</label>
+                    <p className="text-lg font-medium">{patientId || "Loading..."}</p>
+                  </div>
 
-                      <div>
-                        <span className="font-semibold">IPFS Hash: </span>
-                        <code className="text-xs break-all bg-base-300 px-2 py-1 rounded">{currentIpfsHash}</code>
-                      </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-semibold opacity-70">Wallet Address</label>
+                    <div className="mt-1">
+                      <Address address={connectedAddress} />
+                    </div>
+                  </div>
 
-                      <div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-semibold opacity-70">Medical Record IPFS Hash</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="text-xs break-all bg-base-300 px-3 py-2 rounded flex-1">
+                        {patientIpfsHash || "No IPFS hash found"}
+                      </code>
+                      {patientIpfsHash && (
                         <a
-                          href={`https://ipfs.io/ipfs/${currentIpfsHash}`}
+                          href={`https://ipfs.io/ipfs/${patientIpfsHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-sm btn-secondary mt-2"
+                          className="btn btn-sm btn-secondary"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -87,23 +95,33 @@ const MedicalRecordsPage: NextPage = () => {
                               d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                             />
                           </svg>
-                          View on IPFS
+                          View
                         </a>
-                      </div>
+                      )}
                     </div>
                   </div>
+                </div>
 
-                  <div className="text-center">
-                    <a href="/update-patient" className="btn btn-primary">
-                      Update Medical Record
-                    </a>
-                  </div>
+                <div className="flex gap-3 pt-4">
+                  <a href="/update-patient" className="btn btn-primary">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                    Update Record
+                  </a>
                 </div>
-              ) : (
-                <div className="text-center py-8 opacity-60">
-                  <p>No medical record found.</p>
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Info Alert */}
@@ -122,8 +140,8 @@ const MedicalRecordsPage: NextPage = () => {
                 ></path>
               </svg>
               <span className="text-sm">
-                Your medical record is stored as an IPFS hash. The actual medical data should be encrypted before
-                uploading to IPFS.
+                Your medical record is stored securely on the blockchain. The IPFS hash links to your encrypted medical
+                data.
               </span>
             </div>
           </div>
