@@ -52,8 +52,4 @@ contract MedicalRecord is PatientRegistry, AccessControlManager {
         addRecordFee = _newFee;
         emit AddRecordFeeUpdated(_newFee);
     }
-
-    function withdraw() external onlyOwner {
-        payable(owner).transfer(address(this).balance);
-    }
 }
