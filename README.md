@@ -63,6 +63,6 @@ Preview --
 
 <img width="1919" height="871" alt="image" src="https://github.com/user-attachments/assets/2d6fa43b-e72f-4d86-9d8f-721a100f5945" />
 
-📄 License
+License
 
 This project is licensed under the MIT License — feel free to use and improve it!
