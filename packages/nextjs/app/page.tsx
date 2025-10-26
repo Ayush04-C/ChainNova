@@ -4,9 +4,18 @@ import Link from "next/link";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
+
+  // Check if connected user is the owner
+  const { data: owner } = useScaffoldReadContract({
+    contractName: "PatientRegistry",
+    functionName: "owner",
+  });
+
+  const isOwner = connectedAddress && owner && connectedAddress.toLowerCase() === (owner as string).toLowerCase();
 
   return (
     <>
@@ -76,6 +85,11 @@ const Home: NextPage = () => {
               </svg>
               Medical Records
             </Link>
+            {isOwner && (
+              <Link href="/admin" className="btn btn-lg gap-2">
+                Admin Dashboard
+              </Link>
+            )}
           </div>
         </div>
 
